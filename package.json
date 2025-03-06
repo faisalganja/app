@@ -2,19 +2,18 @@
   "name": "my-node-app",
   "version": "1.0.0",
   "scripts": {
-    "start": "node src/server.js",  
-    "build": "webpack --mode production", 
-    "test": "jest"  
+    "start": "node src/server.js",
+    "build": "webpack --mode production",
+    "test": "jest"
   },
   "dependencies": {
-    "express": "^4.21.2"  
+    "express": "^4.21.2"
   },
   "devDependencies": {
-    "jest": "^29.7.0",    
+    "jest": "^29.7.0",
     "webpack": "^5.98.0",
     "webpack-cli": "^5.0.0"
-  }
-,
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/faisalganja/app.git"
