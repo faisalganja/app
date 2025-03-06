@@ -1,2 +1,4 @@
-/node_modules
+**node_modules
 /Jenkinsfile
+node_modules
+node_modules/
