@@ -11,12 +11,13 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",    
-    "webpack": "^5.98.0"  
+    "webpack": "^5.98.0",
+    "webpack-cli": "^5.0.0"
   }
 ,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/faisalganja/app.git"
+    "url": "https://github.com/faisalganja/app.git"
   },
   "author": "",
   "license": "ISC",
