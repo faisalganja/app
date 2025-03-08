@@ -1,42 +1,40 @@
-name: Create ECS Task Definition (Dev)
+name: Deploy to ECS
 
 on:
   push:
     branches:
-      - dev  # Only trigger on pushes to the dev branch
+      - dev
 
 jobs:
-  create-task:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
+      # Checkout code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Configure AWS credentials
+      # Configure AWS credentials
       - name: AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # Replace with your region
+          aws-region: us-east-1
 
-      # 3. Register task definition
-      - name: Register Task Definition
+      # Register ECS task definition
+      - name: Register ECS Task Definition
         run: |
           aws ecs register-task-definition \
-            --family my-dev-task \  # Unique name for dev task
-            --container-definitions '[
-              {
-                "name": "nodeapp",
-                "image": "nodeapp:dev",  # Replace with your image
-                "memory": 512,
-                "cpu": 256,
-                "essential": true
-              }
-            ]' \
-            --requires-compatibilities FARGATE \
-            --network-mode awsvpc \
-            --cpu "256" \
-            --memory "512"
+              --family my-dev-task \
+              --container-definitions '[{
+                  "name": "nodeapp",
+                  "image": "nodeapp:dev",
+                  "memory": 512,
+                  "cpu": 256,
+                  "essential": true
+              }]' \
+              --requires-compatibilities FARGATE \
+              --network-mode awsvpc \
+              --cpu "256" \
+              --memory "512"
