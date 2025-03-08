@@ -3,16 +3,18 @@ name: Deploy to ECS
 on:
   push:
     branches:
-      - dev
+      - dev-1  # Trigger workflow on pushes to the dev-1 branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout code
+      # Checkout code from the dev-1 branch
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: dev-1  # Specify the branch to checkout
 
       # Configure AWS credentials
       - name: AWS Credentials
@@ -20,16 +22,37 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: us-east-1  # Replace with your region
 
-      # Register ECS task definition
-      - name: Register ECS Task Definition
+      # Log in to Amazon ECR
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Build and push Docker image to ECR
+      - name: Build and Push Docker Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}  # ECR registry URL
+          ECR_REPOSITORY: nodeapp:dev-1  # Name of the ECR repository (matches your repo name)
+          IMAGE_TAG: ${{ github.sha }}  # Use commit SHA as the image tag
         run: |
-          aws ecs register-task-definition \
-              --family nodeapp \
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      # Register new task definition and update ECS service
+      - name: Deploy to ECS
+        env:
+          TASK_DEFINITION: nodeapp-1  # Name of your ECS task definition family
+          CLUSTER_NAME: nodeapp       # Name of your ECS cluster
+          SERVICE_NAME: nodeapp-1     # Name of your ECS service
+          ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}  # AWS account ID
+        run: |
+          # Register new task definition
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+              --family $TASK_DEFINITION \
               --container-definitions '[{
                   "name": "nodeapp",
-                  "image": "nodeapp:dev",
+                  "image": "'"$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"'",
                   "memory": 512,
                   "cpu": 256,
                   "essential": true
@@ -37,4 +60,14 @@ jobs:
               --requires-compatibilities FARGATE \
               --network-mode awsvpc \
               --cpu "256" \
-              --memory "512"
+              --memory "512" \
+              --execution-role-arn "arn:aws:iam::$ACCOUNT_ID:role/ecsTaskExecutionRole" \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text)
+
+          # Update ECS service to use the new task definition
+          aws ecs update-service \
+              --cluster $CLUSTER_NAME \
+              --service $SERVICE_NAME \
+              --task-definition $NEW_TASK_DEF_ARN \
+              --force-new-deployment
