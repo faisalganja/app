@@ -33,7 +33,7 @@ jobs:
       - name: Build and Push Docker Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}  # ECR registry URL
-          ECR_REPOSITORY: nodeapp  # Name of the ECR repository (no tag here)
+          ECR_REPOSITORY: nodeapp:dev2  # Name of the ECR repository (no tag here)
           IMAGE_TAG: ${{ github.sha }}  # Use commit SHA as the image tag
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
