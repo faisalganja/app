@@ -26,7 +26,7 @@ jobs:
       - name: Register ECS Task Definition
         run: |
           aws ecs register-task-definition \
-              --family my-dev-task \
+              --family nodeapp \
               --container-definitions '[{
                   "name": "nodeapp",
                   "image": "nodeapp:dev",
