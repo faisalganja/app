@@ -3,18 +3,16 @@ name: Deploy to ECS
 on:
   push:
     branches:
-      - dev-2  # Trigger workflow on pushes to the dev-1 branch
+      - dev-2  # Trigger workflow on pushes to the dev-2 branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout code from the dev-1 branch
+      # Checkout code from the dev-2 branch
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: dev-2  # Specify the branch to checkout
 
       # Configure AWS credentials
       - name: AWS Credentials
@@ -22,7 +20,6 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
           aws-region: us-east-1  # Replace with your region
 
       # Log in to Amazon ECR
@@ -34,10 +31,16 @@ jobs:
       - name: Build and Push Docker Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}  # ECR registry URL
-          ECR_REPOSITORY: nodeapp  # Name of the ECR repository (no tag here)
-          IMAGE_TAG: dev-2  # Use commit SHA as the image tag
+          ECR_REPOSITORY: nodeapp  # Name of the ECR repository
+          IMAGE_TAG: dev-2  # Use a specific tag (e.g., dev-2)
         run: |
+          # Print the image reference for debugging
+          echo "Image reference: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+          # Build the Docker image
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+          # Push the Docker image to ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       # Register new task definition and update ECS service
