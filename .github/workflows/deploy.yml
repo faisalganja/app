@@ -3,7 +3,7 @@ name: Deploy to ECS
 on:
   push:
     branches:
-      - dev-1  # Trigger workflow on pushes to the dev-1 branch
+      - dev-2  # Trigger workflow on pushes to the dev-1 branch
 
 jobs:
   deploy:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: dev-1  # Specify the branch to checkout
+          ref: dev-2  # Specify the branch to checkout
 
       # Configure AWS credentials
       - name: AWS Credentials
@@ -42,9 +42,9 @@ jobs:
       # Register new task definition and update ECS service
       - name: Deploy to ECS
         env:
-          TASK_DEFINITION: nodeapp-1  # Name of your ECS task definition family
+          TASK_DEFINITION: nodeapp-2  # Name of your ECS task definition family
           CLUSTER_NAME: nodeapp       # Name of your ECS cluster
-          SERVICE_NAME: nodeapp-1     # Name of your ECS service
+          SERVICE_NAME: nodeapp-2     # Name of your ECS service
           ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}  # AWS account ID
         run: |
           # Register new task definition
