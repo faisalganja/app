@@ -1,1 +1,72 @@
 
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main  # Replace with your target branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Configure AWS credentials
+      - name: AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # Replace with your region
+
+      # Log in to Amazon ECR
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Build and push Docker image
+      - name: Build and Push Docker Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}  # Use commit SHA as the tag
+        run: |
+          docker build -t $ECR_REGISTRY/my-repo:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/my-repo:$IMAGE_TAG
+
+      # Update ECS Task Definition
+      - name: Update ECS Task Definition
+        env:
+          TASK_DEFINITION: nodeapp  # Name of your ECS task definition
+          CONTAINER_NAME: nodeapp        # Name of the container in the task
+          CLUSTER_NAME: nodeapp            # ECS cluster name
+          SERVICE_NAME: nodeapp            # ECS service name
+        run: |
+          # Fetch the latest task definition
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION)
+          NEW_IMAGE="$ECR_REGISTRY/my-repo:$IMAGE_TAG"
+
+          # Replace the image in the container definition
+          UPDATED_TASK_DEF=$(echo $TASK_DEF | jq --arg image "$NEW_IMAGE" '.taskDefinition.containerDefinitions[0].image = $image')
+
+          # Register the new task definition
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --family $TASK_DEFINITION \
+            --container-definitions "$(echo $UPDATED_TASK_DEF | jq '.taskDefinition.containerDefinitions')" \
+            --execution-role-arn "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole" \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
+            --cpu "256" \
+            --memory "512" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          # Update the ECS service
+          aws ecs update-service \
+            --cluster $CLUSTER_NAME \
+            --service $SERVICE_NAME \
+            --task-definition $NEW_TASK_DEF_ARN \
+            --force-new-deployment
